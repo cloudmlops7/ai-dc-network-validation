@@ -1,0 +1,42 @@
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Secrets and local configuration
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Generated test reports and diagnostic logs
+results/*.html
+results/run_*.log
+results/failure_*.log
+results/rca_*.json
+
+# Editor and OS files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Containerlab-generated state (keep source topology YAML/configs)
+topology/clab-*/
+
+# Backup files
+*.bak
+
+# Ignore intermediate benchmark CSVs; publish only the documented five-trial run
+results/*.csv
+!results/bgp_traffic_trials_detail_20261013_101244.csv
+!results/bgp_traffic_trials_summary_20261013_101244.csv
+results/*.log

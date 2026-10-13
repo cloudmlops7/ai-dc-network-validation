@@ -1,0 +1,13 @@
+name: firstlab
+
+topology:
+  nodes:
+    h1:
+      kind: linux
+      image: ghcr.io/srl-labs/network-multitool:latest
+    h2:
+      kind: linux
+      image: ghcr.io/srl-labs/network-multitool:latest
+
+  links:
+    - endpoints: ["h1:eth1", "h2:eth1"]

@@ -1,0 +1,29 @@
+name: ospftri
+
+topology:
+  nodes:
+    r1:
+      kind: frr
+      image: quay.io/frrouting/frr:containerlab-10.7.1
+      daemons:
+        - ospfd
+      startup-config: ospf/r1.frr.conf
+
+    r2:
+      kind: frr
+      image: quay.io/frrouting/frr:containerlab-10.7.1
+      daemons:
+        - ospfd
+      startup-config: ospf/r2.frr.conf
+
+    r3:
+      kind: frr
+      image: quay.io/frrouting/frr:containerlab-10.7.1
+      daemons:
+        - ospfd
+      startup-config: ospf/r3.frr.conf
+
+  links:
+    - endpoints: ["r1:eth1", "r2:eth1"]
+    - endpoints: ["r2:eth2", "r3:eth1"]
+    - endpoints: ["r1:eth2", "r3:eth2"]

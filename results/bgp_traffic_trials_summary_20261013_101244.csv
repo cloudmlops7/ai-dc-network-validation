@@ -1,0 +1,6 @@
+trial,failover_route_convergence_s,preferred_route_restoration_s,baseline_probes,baseline_successes,baseline_failures,baseline_failed_percent,baseline_largest_success_gap_s,failover_probes,failover_successes,failover_failures,failover_failed_percent,failover_largest_success_gap_s,restoration_probes,restoration_successes,restoration_failures,restoration_failed_percent,restoration_largest_success_gap_s
+1,0.336,1.64,5,5,0,0.0,0.248,11,10,1,9.09,0.263,17,17,0,0.0,0.254
+2,0.303,1.566,5,5,0,0.0,0.248,10,10,0,0.0,0.247,19,19,0,0.0,0.243
+3,0.307,1.609,5,5,0,0.0,0.266,10,10,0,0.0,0.24,19,19,0,0.0,0.232
+4,0.338,1.622,5,5,0,0.0,0.283,10,10,0,0.0,0.244,18,18,0,0.0,0.248
+5,0.339,1.651,5,5,0,0.0,0.232,11,10,1,9.09,0.265,18,18,0,0.0,0.24
