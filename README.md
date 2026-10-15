@@ -21,7 +21,9 @@ A hands-on network validation proof of concept using Containerlab, FRRouting (FR
 ## Repository layout
 
 - `topology/` — Containerlab YAML files and FRR configurations.
-- `tests/` — connectivity, failure detection, OSPF, BGP, and RCA unit tests.
+- `tests/` — connectivity, failure detection, OSPF, BGP, failure-injection, correlation, and RCA tests.
+- `tests/unit/` — isolated unit tests that do not require a running network lab.
+- `failure_injection/` — reusable failure injection, evidence collection, scenario orchestration, and correlation components.
 - `results/` — timestamped HTML reports, logs, and benchmark CSV files.
 - `docs/` — topology documentation and diagrams.
 - `diagnostics/` — evidence-based, rule-driven RCA findings.
@@ -31,6 +33,7 @@ A hands-on network validation proof of concept using Containerlab, FRRouting (FR
 - `run_bgp_trials.py` — repeated route-convergence measurements.
 - `run_bgp_traffic_impact.py` — continuous-probe failover experiment.
 - `run_bgp_traffic_trials.py` — repeated traffic-impact trials.
+- `run_failure_scenario.py` — controlled failure-injection and evidence-correlation scenario.
 - `run_tests.sh` — regression test runner.
 
 ## Run the regression tests
@@ -85,9 +88,21 @@ These measurements describe this WSL2/Containerlab/FRR environment only. The con
 
 Detailed methodology and trial results will be documented in `reports/bgp-failover-benchmark.md`.
 
+## Failure injection and evidence correlation
+
+The `failure_injection/` package provides reusable components for controlled network-failure experiments. It supports interface failure injection with automatic restoration, before/during/after evidence collection, condition-based route recovery detection, and scenario-level evidence correlation.
+
+A verified BGP scenario disabled `clab-bgpline-r1:eth2`, the preferred R1-to-R3 path. The framework detected recovery through the backup R1-to-R2-to-R3 path, verified reachability during the stable failure state, restored the interface, and detected recovery of the preferred path.
+
+The recorded scenario detected the backup-path condition in **0.163 s** and the preferred-path condition after restoration in **1.284 s**. These are single-run condition-detection times, not benchmark statistics or exact packet-loss-duration measurements.
+
+The correlation reported `clab-bgpline-r1:eth2 link/path` as the probable failure domain. The current correlation and RCA implementation is **deterministic and rule-based**; it does not use an LLM or machine-learning model, and findings should be treated as evidence-based probable causes rather than independently proven root causes.
+
+Run the controlled scenario with `python run_failure_scenario.py`. Structured scenario results are written under `results/`.
+
 ## Current test status
 
-The latest verified full regression run passed 21 tests, including 6 isolated RCA unit tests. Run `./run_tests.sh` after changes to verify the current status.
+The latest verified full regression run on 2026-10-15 passed **30 tests in 36.46 seconds**, including **15 isolated unit tests** covering the RCA engine and failure-injection/evidence-correlation framework. Run `./run_tests.sh` after changes to verify the current status.
 
 ## Future work
 
