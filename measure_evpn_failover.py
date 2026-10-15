@@ -1,4 +1,5 @@
 import subprocess
+import threading
 import time
 
 LAB_PREFIX = "clab-evpnvxlan"
@@ -62,14 +63,61 @@ def evpn_multipath_restored():
         "[3]:[0]:[32]:[22.22.22.22]" in output
         and "*=" in output
     )
+def continuous_probe(stop_event, probe_results, start_time):
+    sequence = 1
+
+    while not stop_event.is_set():
+        probe_start = time.monotonic()
+
+        success = probe_host2()
+
+        elapsed = time.monotonic() - start_time
+
+        probe_results.append(
+            {
+                "seq": sequence,
+                "time": elapsed,
+                "success": success,
+            }
+        )
+
+        sequence += 1
+
+        remaining = 0.2 - (
+            time.monotonic() - probe_start
+        )
+
+        if remaining > 0:
+            stop_event.wait(remaining)
 
 def run_measurement():
     results = []
     control_plane_time = None
     multipath_time = None
     multipath_restore_time = None
+    continuous_results = []
+    stop_event = threading.Event()
+    traffic_thread = None
 
     try:
+        # -------------------------------------------------
+        # Start continuous traffic before failure injection
+        # -------------------------------------------------
+        traffic_start = time.monotonic()
+
+        traffic_thread = threading.Thread(
+            target=continuous_probe,
+            args=(
+                stop_event,
+                continuous_results,
+                traffic_start,
+            ),
+        )
+
+        traffic_thread.start()
+
+        print("Continuous traffic started...")
+
         # -------------------------------------------------
         # 1. Baseline traffic
         # -------------------------------------------------
@@ -93,6 +141,9 @@ def run_measurement():
 
         failure_time = time.monotonic()
 
+        failure_offset = (
+            failure_time - traffic_start
+        )
         docker_exec(
             "leaf1",
             "ip", "link", "set", "eth1", "down",
@@ -215,6 +266,16 @@ def run_measurement():
                 "EVPN multipath restoration timed out"
             )
 
+        # -------------------------------------------------
+        # Stop continuous traffic after recovery
+        # -------------------------------------------------
+        stop_event.set()
+
+        if traffic_thread is not None:
+            traffic_thread.join(timeout=3)
+
+        print("Continuous traffic stopped.")
+
     # -------------------------------------------------
     # 7. Recovery traffic
     # -------------------------------------------------
@@ -278,7 +339,62 @@ def run_measurement():
         print(
             "EVPN 1 -> 2 path       : timeout"
         )
+    # -------------------------------------------------
+    # Continuous traffic summary
+    # -------------------------------------------------
+    continuous_total = len(continuous_results)
 
+    continuous_failed = sum(
+        1
+        for probe in continuous_results
+        if not probe["success"]
+    )
+
+    continuous_passed = (
+        continuous_total - continuous_failed
+    )
+
+    print("\nContinuous traffic")
+    print(
+        f"Total probes           : "
+        f"{continuous_total}"
+    )
+    print(
+        f"Passed                 : "
+        f"{continuous_passed}"
+    )
+    print(
+        f"Failed                 : "
+        f"{continuous_failed}"
+    )
+
+    print(
+        f"Failure injected at    : "
+        f"{failure_offset:.3f}s"
+    )
+    if continuous_failed > 0:
+        failed_probes = [
+            probe
+            for probe in continuous_results
+            if not probe["success"]
+        ]
+
+        first_failure = failed_probes[0]["time"]
+        last_failure = failed_probes[-1]["time"]
+
+        print(
+            f"First failed probe     : "
+            f"{first_failure:.3f}s"
+        )
+        print(
+            f"Last failed probe      : "
+            f"{last_failure:.3f}s"
+        )
+    else:
+        print(
+            "Observed packet impact : "
+            "no failed probes"
+        )
 
 if __name__ == "__main__":
     run_measurement()
