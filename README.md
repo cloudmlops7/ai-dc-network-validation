@@ -8,7 +8,12 @@ A hands-on network validation proof of concept using Containerlab, FRRouting (FR
 - Exercise OSPF adjacency, route installation, and alternate-path forwarding.
 - Validate BGP neighbor establishment, route learning, failover, and recovery.
 - Measure route convergence and observe probe behavior during failures.
-- Build a foundation for future AI data-center fabric validation and automated root-cause analysis.
+- Validate a redundant leaf-spine EVPN/VXLAN fabric, including BGP EVPN sessions, VTEPs, VNIs, Type-2/Type-3 routes, remote MAC programming, and tenant forwarding.
+- Validate EVPN multipath behavior during single-uplink failure and recovery.
+- Validate jumbo-frame operation with a 9000-byte tenant MTU across the VXLAN overlay.
+- Measure control-plane transitions and sampled traffic behavior during controlled failures.
+- Correlate injected failures with network-state evidence using deterministic, rule-based analysis.
+- Build toward AI data-center fabric validation, including RoCEv2/lossless-Ethernet concepts where they can be meaningfully demonstrated without specialized RDMA hardware.
 
 ## Environment
 
@@ -21,7 +26,7 @@ A hands-on network validation proof of concept using Containerlab, FRRouting (FR
 ## Repository layout
 
 - `topology/` — Containerlab YAML files and FRR configurations.
-- `tests/` — connectivity, failure detection, OSPF, BGP, failure-injection, correlation, and RCA tests.
+- `tests/` — connectivity, OSPF, BGP, EVPN/VXLAN, failure-injection, correlation, MTU, and RCA tests.
 - `tests/unit/` — isolated unit tests that do not require a running network lab.
 - `failure_injection/` — reusable failure injection, evidence collection, scenario orchestration, and correlation components.
 - `results/` — timestamped HTML reports, logs, and benchmark CSV files.
@@ -34,6 +39,9 @@ A hands-on network validation proof of concept using Containerlab, FRRouting (FR
 - `run_bgp_traffic_impact.py` — continuous-probe failover experiment.
 - `run_bgp_traffic_trials.py` — repeated traffic-impact trials.
 - `run_failure_scenario.py` — controlled failure-injection and evidence-correlation scenario.
+- `measure_evpn_failover.py` — single EVPN failure/recovery timing and continuous-traffic measurement.
+- `benchmark_evpn_failover.py` — repeated EVPN resiliency trials with structured JSON evidence.
+- `init_evpn_lab.sh` — initializes the EVPN/VXLAN underlay, overlay, and endpoint addressing.
 - `run_tests.sh` — regression test runner.
 
 ## Run the regression tests
@@ -100,18 +108,100 @@ The correlation reported `clab-bgpline-r1:eth2 link/path` as the probable failur
 
 Run the controlled scenario with `python run_failure_scenario.py`. Structured scenario results are written under `results/`.
 
+## Phase 6 — EVPN/VXLAN fabric validation and resiliency
+
+Phase 6 adds a redundant leaf-spine EVPN/VXLAN fabric using FRRouting and Containerlab.
+
+### Topology
+
+```text
+                 spine1          spine2
+                   |\              /|
+                   | \            / |
+                   |  \          /  |
+                 leaf1          leaf2
+                   |              |
+                 host1          host2
+```
+
+- `leaf1` and `leaf2` operate as VTEPs.
+- Each leaf has an eBGP underlay connection to both spines.
+- BGP EVPN provides the overlay control plane.
+- L2 VNI `10100` provides tenant connectivity between the two hosts.
+- The current Linux bridge implementation is VLAN-unaware; FRR reports the VNI on bridge default VLAN 1 rather than an explicitly configured VLAN 100.
+
+### Validated behavior
+
+Automated and manual validation covers:
+
+- Underlay reachability and redundant paths between VTEP loopbacks.
+- BGP EVPN neighbor establishment through both spines.
+- EVPN Type-3 IMET route exchange and remote-VTEP discovery.
+- EVPN Type-2 remote MAC route learning.
+- Linux FDB programming of remote MAC entries with `extern_learn`.
+- End-to-end tenant traffic across the VXLAN overlay.
+- EVPN multipath through both spines.
+- Single leaf-spine uplink failure with retention of the surviving EVPN path.
+- Tenant forwarding after failure convergence.
+- Restoration of two-path EVPN operation after link recovery.
+- Persistent 9000-byte tenant MTU and end-to-end jumbo-frame validation.
+
+A 9000-byte inner IPv4 packet was validated using an ICMP payload of 8972 bytes. A 9001-byte inner packet exceeded the configured overlay MTU during manual boundary testing. The underlay links use MTU 9500 to provide encapsulation headroom.
+
+### EVPN resiliency benchmark
+
+Five controlled `leaf1 eth1` failure/recovery trials were recorded in the Containerlab/FRR environment.
+
+| Metric | Minimum | Average | Maximum |
+|---|---:|---:|---:|
+| EVPN neighbor-state detection | 1.133 s | 1.248 s | 1.305 s |
+| EVPN path reduction, 2 → 1 | 1.453 s | 1.565 s | 1.645 s |
+| EVPN path restoration, 1 → 2 | 1.392 s | 1.727 s | 2.506 s |
+
+Continuous ICMP sampling across the five trials recorded:
+
+- Total probes: **198**
+- Successful probes: **194**
+- Failed probes: **4**
+- Observed success rate: **97.98%**
+
+All stable post-convergence failure-window and recovery checks passed. The four failed continuous samples occurred close in time to the observed EVPN neighbor-state transition.
+
+The benchmark evidence is stored in `results/evpn_failover_benchmark_20261015_180824.json`.
+
+These timings are observations from a **WSL2/Containerlab/FRR software environment**. They are not hardware convergence specifications, SLA measurements, or exact packet-loss-duration measurements. Continuous traffic uses sampled ICMP probes rather than a precision traffic generator.
+
+### EVPN failure evidence correlation
+
+`failure_injection/evpn_correlation.py` consumes structured benchmark evidence and deterministically correlates:
+
+- the injected leaf-spine link failure,
+- EVPN neighbor-state transition,
+- reduction from two EVPN paths to one,
+- sampled traffic impact,
+- and restoration of EVPN multipath.
+
+This analysis is **deterministic and rule-based**. It is not an AI/ML or LLM-based RCA engine and does not claim that temporal correlation independently proves causality.
+
+
 ## Current test status
 
-The latest verified full regression run on 2026-10-15 passed **30 tests in 36.46 seconds**, including **15 isolated unit tests** covering the RCA engine and failure-injection/evidence-correlation framework. Run `./run_tests.sh` after changes to verify the current status.
+The latest verified full regression run on 2026-10-15 passed **39 tests in 58.21 seconds**. The regression includes routing, EVPN/VXLAN, failure-injection, evidence-correlation, RCA, recovery, and jumbo-MTU validation. Run `./run_tests.sh` after changes to verify the current status.
 
 ## Future work
 
-- Improve diagnostics and evidence-based failure reporting; current RCA findings are hypotheses, not confirmed root causes.
-- Extend routing and convergence tests.
-- Explore EVPN/VXLAN validation.
-- Add RoCEv2-related scenarios for MTU, ECN, PFC, and congestion behavior where the lab supports them.
-- Clearly distinguish software simulation from real RDMA hardware and data-center switch validation.
+### Phase 7 — RoCEv2 and lossless-Ethernet validation
 
+Planned work will validate only capabilities that can be meaningfully demonstrated in the current software lab, including:
+
+- QoS/DSCP classification and traffic handling.
+- Jumbo-MTU behavior relevant to RoCEv2 fabrics.
+- ECMP and path-failure behavior for representative RoCEv2-style traffic.
+- Congestion generation and Linux queue/interface evidence.
+- ECN behavior where supported by the Linux networking stack.
+- Telemetry collection and automated failure/congestion correlation.
+
+Hardware-dependent behavior such as real RDMA verbs, Queue Pairs, Completion Queues, PFC hardware queues, DCQCN, RDMA NIC counters, and actual RoCE throughput will be documented as production validation scenarios rather than claimed as executed in this software-only environment.
 ## Reproducibility notes
 
 - Record the topology, environment, trial count, and measurement method with each benchmark.
