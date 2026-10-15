@@ -10,7 +10,7 @@ topology:
         - ./evpn-vxlan/config/daemons:/etc/frr/daemons
         - ./evpn-vxlan/config/spine1.sh:/opt/spine1.sh
         - ./evpn-vxlan/config/spine1-frr.conf:/etc/frr/frr.conf
-
+        - ./evpn-vxlan/config/vtysh.conf:/etc/frr/vtysh.conf
     spine2:
       kind: linux
       image: quay.io/frrouting/frr:containerlab-10.7.1
@@ -19,7 +19,7 @@ topology:
         - ./evpn-vxlan/config/daemons:/etc/frr/daemons
         - ./evpn-vxlan/config/spine2.sh:/opt/spine2.sh
         - ./evpn-vxlan/config/spine2-frr.conf:/etc/frr/frr.conf
-
+        - ./evpn-vxlan/config/vtysh.conf:/etc/frr/vtysh.conf
     leaf1:
       kind: linux
       image: quay.io/frrouting/frr:containerlab-10.7.1
@@ -28,6 +28,7 @@ topology:
         - ./evpn-vxlan/config/daemons:/etc/frr/daemons
         - ./evpn-vxlan/config/leaf1.sh:/opt/leaf1.sh
         - ./evpn-vxlan/config/leaf1-frr.conf:/etc/frr/frr.conf
+        - ./evpn-vxlan/config/vtysh.conf:/etc/frr/vtysh.conf
 
     leaf2:
       kind: linux
@@ -37,6 +38,7 @@ topology:
         - ./evpn-vxlan/config/daemons:/etc/frr/daemons
         - ./evpn-vxlan/config/leaf2.sh:/opt/leaf2.sh
         - ./evpn-vxlan/config/leaf2-frr.conf:/etc/frr/frr.conf
+        - ./evpn-vxlan/config/vtysh.conf:/etc/frr/vtysh.conf
 
     host1:
       kind: linux
