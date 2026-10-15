@@ -11,6 +11,7 @@ ip link set eth2 up
 if ! ip link show br100 >/dev/null 2>&1; then
     ip link add br100 type bridge
 fi
+ip link set br100 mtu 9000
 ip link set br100 up
 
 if ! ip link show vxlan10100 >/dev/null 2>&1; then
@@ -19,6 +20,8 @@ if ! ip link show vxlan10100 >/dev/null 2>&1; then
 fi
 
 ip link set vxlan10100 master br100
+ip link set vxlan10100 mtu 9000
+
 ip link set vxlan10100 up
 
 ip link set eth3 master br100

@@ -189,3 +189,28 @@ def test_evpn_single_uplink_failure_and_recovery():
         "ping", "-c", "3", "-W", "2",
         "192.168.10.12",
     )
+
+def test_evpn_jumbo_frame_mtu():
+    # Verify the tenant bridge and VXLAN interfaces use 9000-byte MTU.
+    for leaf in ("leaf1", "leaf2"):
+        bridge_mtu = docker_exec(
+            leaf,
+            "cat", "/sys/class/net/br100/mtu",
+        ).strip()
+
+        vxlan_mtu = docker_exec(
+            leaf,
+            "cat", "/sys/class/net/vxlan10100/mtu",
+        ).strip()
+
+        assert bridge_mtu == "9000"
+        assert vxlan_mtu == "9000"
+
+    # 8972-byte ICMP payload + 28 bytes IPv4/ICMP headers
+    # produces a 9000-byte inner IP packet.
+    docker_exec(
+        "host1",
+        "ping", "-c", "3", "-W", "2",
+        "-s", "8972",
+        "192.168.10.12",
+    )
