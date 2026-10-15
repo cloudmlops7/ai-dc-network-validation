@@ -1,7 +1,10 @@
+import json
 import statistics
 import subprocess
 import threading
 import time
+from datetime import datetime
+from pathlib import Path
 
 LAB_PREFIX = "clab-evpnvxlan"
 
@@ -359,6 +362,12 @@ def run_measurement(trial_number):
         continuous_total - continuous_failed
     )
 
+    failed_probes = [
+        probe
+        for probe in continuous_results
+        if not probe["success"]
+    ]
+
     print("\nContinuous traffic")
     print(
         f"Total probes           : "
@@ -378,11 +387,6 @@ def run_measurement(trial_number):
         f"{failure_offset:.3f}s"
     )
     if continuous_failed > 0:
-        failed_probes = [
-            probe
-            for probe in continuous_results
-            if not probe["success"]
-        ]
 
         first_failure = failed_probes[0]["time"]
         last_failure = failed_probes[-1]["time"]
@@ -401,6 +405,16 @@ def run_measurement(trial_number):
             "no failed probes"
         )
 
+    failed_probe_times = [
+        probe["time"]
+        for probe in failed_probes
+    ]
+
+    failed_probe_times_after_injection = [
+        probe_time - failure_offset
+        for probe_time in failed_probe_times
+    ]
+
     return {
         "trial": trial_number,
         "failure_detection": control_plane_time,
@@ -409,7 +423,49 @@ def run_measurement(trial_number):
         "continuous_total": continuous_total,
         "continuous_passed": continuous_passed,
         "continuous_failed": continuous_failed,
+        "failure_injected_at_seconds": failure_offset,
+        "failed_probe_times_from_traffic_start_seconds":
+            failed_probe_times,
+        "failed_probe_times_after_injection_seconds":
+            failed_probe_times_after_injection,
     }
+def save_benchmark_results(all_results, aggregate):
+    results_dir = Path("results")
+    results_dir.mkdir(exist_ok=True)
+
+    timestamp = datetime.now().strftime(
+        "%Y%m%d_%H%M%S"
+    )
+
+    output_file = results_dir / (
+        f"evpn_failover_benchmark_{timestamp}.json"
+    )
+
+    evidence = {
+        "benchmark": "EVPN-VXLAN resiliency",
+        "environment": {
+            "platform": "WSL2 / Containerlab / FRR",
+            "failure_injection": "leaf1 eth1 down",
+            "traffic": "host1 -> host2 ICMP",
+            "probe_interval_seconds": 0.2,
+        },
+        "trials": all_results,
+        "aggregate": aggregate,
+    }
+
+    with output_file.open("w") as f:
+        json.dump(
+            evidence,
+            f,
+            indent=2,
+        )
+
+    print(
+        f"\nBenchmark evidence saved: "
+        f"{output_file}"
+    )
+
+    return output_file
 
 if __name__ == "__main__":
     all_results = []
@@ -533,3 +589,49 @@ if __name__ == "__main__":
         print(
             f"Success rate : {success_rate:.2f}%"
         )
+    aggregate = {
+        "trials": len(all_results),
+
+        "neighbor_detection_seconds": {
+            "min": min(failure_times)
+            if failure_times else None,
+            "avg": statistics.mean(failure_times)
+            if failure_times else None,
+            "max": max(failure_times)
+            if failure_times else None,
+        },
+
+        "evpn_2_to_1_seconds": {
+            "min": min(path_down_times)
+            if path_down_times else None,
+            "avg": statistics.mean(path_down_times)
+            if path_down_times else None,
+            "max": max(path_down_times)
+            if path_down_times else None,
+        },
+
+        "evpn_1_to_2_seconds": {
+            "min": min(path_restore_times)
+            if path_restore_times else None,
+            "avg": statistics.mean(path_restore_times)
+            if path_restore_times else None,
+            "max": max(path_restore_times)
+            if path_restore_times else None,
+        },
+
+        "traffic": {
+            "total_probes": total_probes,
+            "passed": total_passed,
+            "failed": total_failed,
+            "success_rate_percent": (
+                (total_passed / total_probes) * 100
+                if total_probes > 0
+                else None
+            ),
+        },
+    }
+
+    save_benchmark_results(
+        all_results,
+        aggregate,
+    )

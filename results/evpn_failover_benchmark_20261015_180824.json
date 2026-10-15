@@ -1,0 +1,111 @@
+{
+  "benchmark": "EVPN-VXLAN resiliency",
+  "environment": {
+    "platform": "WSL2 / Containerlab / FRR",
+    "failure_injection": "leaf1 eth1 down",
+    "traffic": "host1 -> host2 ICMP",
+    "probe_interval_seconds": 0.2
+  },
+  "trials": [
+    {
+      "trial": 1,
+      "failure_detection": 1.3045712050006841,
+      "path_2_to_1": 1.6446877480011608,
+      "path_1_to_2": 2.506384486998286,
+      "continuous_total": 43,
+      "continuous_passed": 42,
+      "continuous_failed": 1,
+      "failure_injected_at_seconds": 1.9451000660010322,
+      "failed_probe_times_from_traffic_start_seconds": [
+        3.1152910020027775
+      ],
+      "failed_probe_times_after_injection_seconds": [
+        1.1701909360017453
+      ]
+    },
+    {
+      "trial": 2,
+      "failure_detection": 1.2949465819983743,
+      "path_2_to_1": 1.6378599039999244,
+      "path_1_to_2": 1.392442893000407,
+      "continuous_total": 37,
+      "continuous_passed": 36,
+      "continuous_failed": 1,
+      "failure_injected_at_seconds": 1.742778724998061,
+      "failed_probe_times_from_traffic_start_seconds": [
+        2.9238894899972365
+      ],
+      "failed_probe_times_after_injection_seconds": [
+        1.1811107649991754
+      ]
+    },
+    {
+      "trial": 3,
+      "failure_detection": 1.2406789230008144,
+      "path_2_to_1": 1.5466625169974577,
+      "path_1_to_2": 1.5517562959976203,
+      "continuous_total": 38,
+      "continuous_passed": 37,
+      "continuous_failed": 1,
+      "failure_injected_at_seconds": 1.7264641159999883,
+      "failed_probe_times_from_traffic_start_seconds": [
+        2.9705353529971035
+      ],
+      "failed_probe_times_after_injection_seconds": [
+        1.2440712369971152
+      ]
+    },
+    {
+      "trial": 4,
+      "failure_detection": 1.1326081229999545,
+      "path_2_to_1": 1.4527450610003143,
+      "path_1_to_2": 1.5732805070001632,
+      "continuous_total": 42,
+      "continuous_passed": 42,
+      "continuous_failed": 0,
+      "failure_injected_at_seconds": 1.6959557010013668,
+      "failed_probe_times_from_traffic_start_seconds": [],
+      "failed_probe_times_after_injection_seconds": []
+    },
+    {
+      "trial": 5,
+      "failure_detection": 1.269225247000577,
+      "path_2_to_1": 1.5450289569998858,
+      "path_1_to_2": 1.6115017769989208,
+      "continuous_total": 38,
+      "continuous_passed": 37,
+      "continuous_failed": 1,
+      "failure_injected_at_seconds": 1.7675176099983219,
+      "failed_probe_times_from_traffic_start_seconds": [
+        2.934321714001271
+      ],
+      "failed_probe_times_after_injection_seconds": [
+        1.1668041040029493
+      ]
+    }
+  ],
+  "aggregate": {
+    "trials": 5,
+    "neighbor_detection_seconds": {
+      "min": 1.1326081229999545,
+      "avg": 1.248406016000081,
+      "max": 1.3045712050006841
+    },
+    "evpn_2_to_1_seconds": {
+      "min": 1.4527450610003143,
+      "avg": 1.5653968373997487,
+      "max": 1.6446877480011608
+    },
+    "evpn_1_to_2_seconds": {
+      "min": 1.392442893000407,
+      "avg": 1.7270731919990794,
+      "max": 2.506384486998286
+    },
+    "traffic": {
+      "total_probes": 198,
+      "passed": 194,
+      "failed": 4,
+      "success_rate_percent": 97.97979797979798
+    }
+  }
+}
