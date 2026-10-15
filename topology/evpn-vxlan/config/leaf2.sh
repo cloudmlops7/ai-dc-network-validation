@@ -7,10 +7,17 @@ ip addr replace 22.22.22.22/32 dev lo
 ip link set eth1 up
 ip link set eth2 up
 # EVPN/VXLAN overlay
-ip link add br100 type bridge
+
+if ! ip link show br100 >/dev/null 2>&1; then
+    ip link add br100 type bridge
+fi
 ip link set br100 up
 
-ip link add vxlan10100 type vxlan id 10100 local 22.22.22.22 dstport 4789 nolearning
+if ! ip link show vxlan10100 >/dev/null 2>&1; then
+    ip link add vxlan10100 type vxlan id 10100 \
+        local 22.22.22.22 dstport 4789 nolearning
+fi
+
 ip link set vxlan10100 master br100
 ip link set vxlan10100 up
 
