@@ -1,0 +1,113 @@
+{
+  "scenario_evidence": {
+    "scenario": "interface_failure",
+    "target": {
+      "container": "clab-bgpline-r1",
+      "interface": "eth2",
+      "destination": "3.3.3.3"
+    },
+    "before": {
+      "container": "clab-bgpline-r1",
+      "interface": {
+        "returncode": 0,
+        "stdout": "eth2@if14        UP             aa:c1:ab:1a:8e:d8 <BROADCAST,MULTICAST,UP,LOWER_UP>",
+        "stderr": ""
+      },
+      "bgp_summary": {
+        "returncode": 0,
+        "stdout": "BGP router identifier 1.1.1.1, local AS number 65001 VRF default vrf-id 0\nBGP table version 10\nRIB entries 2, using 320 bytes of memory\nPeers 2, using 46 KiB of memory\n\nNeighbor        V         AS   MsgRcvd   MsgSent   TblVer  InQ OutQ  Up/Down State/PfxRcd   PfxSnt Desc\n10.0.12.2       4      65002        74        86       10    0    0 01:04:34            1        2 N/A\n10.0.13.2       4      65003       104       110       10    0    0 00:00:53            1        2 N/A\n\nTotal number of neighbors 2",
+        "stderr": ""
+      },
+      "route": {
+        "returncode": 0,
+        "stdout": "3.3.3.3 via 10.0.13.2 dev eth2 src 10.0.13.1 uid 0 \n    cache",
+        "stderr": ""
+      },
+      "ping": {
+        "returncode": 0,
+        "stdout": "PING 3.3.3.3 (3.3.3.3): 56 data bytes\n64 bytes from 3.3.3.3: seq=0 ttl=64 time=0.126 ms\n64 bytes from 3.3.3.3: seq=1 ttl=64 time=0.086 ms\n64 bytes from 3.3.3.3: seq=2 ttl=64 time=0.141 ms\n\n--- 3.3.3.3 ping statistics ---\n3 packets transmitted, 3 packets received, 0% packet loss\nround-trip min/avg/max = 0.086/0.117/0.141 ms",
+        "stderr": ""
+      }
+    },
+    "backup_recovery": {
+      "recovered": true,
+      "elapsed_seconds": 0.163,
+      "route": {
+        "returncode": 0,
+        "stdout": "3.3.3.3 via 10.0.12.2 dev eth1 src 10.0.12.1 uid 0 \n    cache",
+        "stderr": ""
+      }
+    },
+    "during": {
+      "container": "clab-bgpline-r1",
+      "interface": {
+        "returncode": 0,
+        "stdout": "eth2@if14        DOWN           aa:c1:ab:1a:8e:d8 <BROADCAST,MULTICAST>",
+        "stderr": ""
+      },
+      "bgp_summary": {
+        "returncode": 0,
+        "stdout": "BGP router identifier 1.1.1.1, local AS number 65001 VRF default vrf-id 0\nBGP table version 11\nRIB entries 2, using 320 bytes of memory\nPeers 2, using 46 KiB of memory\n\nNeighbor        V         AS   MsgRcvd   MsgSent   TblVer  InQ OutQ  Up/Down State/PfxRcd   PfxSnt Desc\n10.0.12.2       4      65002        74        87       11    0    0 01:04:38            1        2 N/A\n10.0.13.2       4      65003       104       110        0    0    0 00:00:02       Active        0 N/A\n\nTotal number of neighbors 2",
+        "stderr": ""
+      },
+      "route": {
+        "returncode": 0,
+        "stdout": "3.3.3.3 via 10.0.12.2 dev eth1 src 10.0.12.1 uid 0 \n    cache",
+        "stderr": ""
+      },
+      "ping": {
+        "returncode": 0,
+        "stdout": "PING 3.3.3.3 (3.3.3.3): 56 data bytes\n64 bytes from 3.3.3.3: seq=0 ttl=63 time=0.476 ms\n64 bytes from 3.3.3.3: seq=1 ttl=63 time=0.074 ms\n64 bytes from 3.3.3.3: seq=2 ttl=63 time=0.136 ms\n\n--- 3.3.3.3 ping statistics ---\n3 packets transmitted, 3 packets received, 0% packet loss\nround-trip min/avg/max = 0.074/0.228/0.476 ms",
+        "stderr": ""
+      }
+    },
+    "preferred_recovery": {
+      "recovered": true,
+      "elapsed_seconds": 1.284,
+      "route": {
+        "returncode": 0,
+        "stdout": "3.3.3.3 via 10.0.13.2 dev eth2 src 10.0.13.1 uid 0 \n    cache",
+        "stderr": ""
+      }
+    },
+    "after": {
+      "container": "clab-bgpline-r1",
+      "interface": {
+        "returncode": 0,
+        "stdout": "eth2@if14        UP             aa:c1:ab:1a:8e:d8 <BROADCAST,MULTICAST,UP,LOWER_UP>",
+        "stderr": ""
+      },
+      "bgp_summary": {
+        "returncode": 0,
+        "stdout": "BGP router identifier 1.1.1.1, local AS number 65001 VRF default vrf-id 0\nBGP table version 12\nRIB entries 2, using 320 bytes of memory\nPeers 2, using 46 KiB of memory\n\nNeighbor        V         AS   MsgRcvd   MsgSent   TblVer  InQ OutQ  Up/Down State/PfxRcd   PfxSnt Desc\n10.0.12.2       4      65002        74        88       12    0    0 01:04:42            1        2 N/A\n10.0.13.2       4      65003       111       118       12    0    0 00:00:02            1        2 N/A\n\nTotal number of neighbors 2",
+        "stderr": ""
+      },
+      "route": {
+        "returncode": 0,
+        "stdout": "3.3.3.3 via 10.0.13.2 dev eth2 src 10.0.13.1 uid 0 \n    cache",
+        "stderr": ""
+      },
+      "ping": {
+        "returncode": 0,
+        "stdout": "PING 3.3.3.3 (3.3.3.3): 56 data bytes\n64 bytes from 3.3.3.3: seq=0 ttl=64 time=0.117 ms\n64 bytes from 3.3.3.3: seq=1 ttl=64 time=0.053 ms\n64 bytes from 3.3.3.3: seq=2 ttl=64 time=0.097 ms\n\n--- 3.3.3.3 ping statistics ---\n3 packets transmitted, 3 packets received, 0% packet loss\nround-trip min/avg/max = 0.053/0.089/0.117 ms",
+        "stderr": ""
+      }
+    }
+  },
+  "correlation": {
+    "scenario": "interface_failure",
+    "failure_target": "clab-bgpline-r1:eth2",
+    "destination": "3.3.3.3",
+    "failure_observed": true,
+    "bgp_impact_observed": true,
+    "backup_path_recovered": true,
+    "backup_route": "3.3.3.3 via 10.0.12.2 dev eth1 src 10.0.12.1 uid 0 \n    cache",
+    "traffic_available_during_failure": true,
+    "interface_restored": true,
+    "preferred_path_recovered": true,
+    "traffic_available_after_recovery": true,
+    "probable_failure_domain": "clab-bgpline-r1:eth2 link/path",
+    "service_assessment": "Traffic remained reachable through the alternate path.",
+    "recovery_assessment": "Interface, preferred path, and reachability recovered."
+  }
+}
