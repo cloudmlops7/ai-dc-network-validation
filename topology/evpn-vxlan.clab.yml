@@ -1,0 +1,59 @@
+name: evpnvxlan
+
+topology:
+  nodes:
+    spine1:
+      kind: linux
+      image: quay.io/frrouting/frr:containerlab-10.7.1
+      privileged: true
+      binds:
+        - ./evpn-vxlan/config/daemons:/etc/frr/daemons
+        - ./evpn-vxlan/config/spine1.sh:/opt/spine1.sh
+        - ./evpn-vxlan/config/spine1-frr.conf:/etc/frr/frr.conf
+
+    spine2:
+      kind: linux
+      image: quay.io/frrouting/frr:containerlab-10.7.1
+      privileged: true
+      binds:
+        - ./evpn-vxlan/config/daemons:/etc/frr/daemons
+        - ./evpn-vxlan/config/spine2.sh:/opt/spine2.sh
+        - ./evpn-vxlan/config/spine2-frr.conf:/etc/frr/frr.conf
+
+    leaf1:
+      kind: linux
+      image: quay.io/frrouting/frr:containerlab-10.7.1
+      privileged: true
+      binds:
+        - ./evpn-vxlan/config/daemons:/etc/frr/daemons
+        - ./evpn-vxlan/config/leaf1.sh:/opt/leaf1.sh
+        - ./evpn-vxlan/config/leaf1-frr.conf:/etc/frr/frr.conf
+
+    leaf2:
+      kind: linux
+      image: quay.io/frrouting/frr:containerlab-10.7.1
+      privileged: true
+      binds:
+        - ./evpn-vxlan/config/daemons:/etc/frr/daemons
+        - ./evpn-vxlan/config/leaf2.sh:/opt/leaf2.sh
+        - ./evpn-vxlan/config/leaf2-frr.conf:/etc/frr/frr.conf
+
+    host1:
+      kind: linux
+      image: quay.io/frrouting/frr:containerlab-10.7.1
+      privileged: true
+
+    host2:
+      kind: linux
+      image: quay.io/frrouting/frr:containerlab-10.7.1
+      privileged: true
+
+  links:
+    - endpoints: ["leaf1:eth1", "spine1:eth1"]
+    - endpoints: ["leaf1:eth2", "spine2:eth1"]
+
+    - endpoints: ["leaf2:eth1", "spine1:eth2"]
+    - endpoints: ["leaf2:eth2", "spine2:eth2"]
+
+    - endpoints: ["leaf1:eth3", "host1:eth1"]
+    - endpoints: ["leaf2:eth3", "host2:eth1"]
