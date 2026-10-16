@@ -1,0 +1,115 @@
+{
+  "experiment": "phase7_qos_ecn",
+  "timestamp_utc": "20261016_174048",
+  "leaf": "clab-evpnvxlan-leaf2",
+  "interface": "eth3",
+  "htb_rate": "5mbit",
+  "traffic_profile": {
+    "description": "Synthetic RoCEv2-oriented UDP traffic",
+    "protocol": "UDP",
+    "destination_port": 4791,
+    "source_ip": "192.168.10.11",
+    "destination_ip": "192.168.10.12",
+    "dscp": 26,
+    "ecn_initial": "ECT(0)",
+    "ecn_value": 2,
+    "payload_bytes": 1400,
+    "pps": 1000,
+    "note": "Software-emulated traffic; not real RDMA/RoCE NIC traffic"
+  },
+  "before": {
+    "command": "docker exec clab-evpnvxlan-leaf2 tc -s qdisc show dev eth3",
+    "returncode": 0,
+    "stdout": "qdisc noqueue 0: root refcnt 2 \n Sent 0 bytes 0 pkt (dropped 0, overlimits 0 requeues 0) \n backlog 0b 0p requeues 0",
+    "stderr": ""
+  },
+  "configured": {
+    "qdisc": {
+      "command": "docker exec clab-evpnvxlan-leaf2 tc -s qdisc show dev eth3",
+      "returncode": 0,
+      "stdout": "qdisc htb 1: root refcnt 13 r2q 10 default 0x10 direct_packets_stat 0 direct_qlen 1000\n Sent 0 bytes 0 pkt (dropped 0, overlimits 0 requeues 0) \n backlog 0b 0p requeues 0\nqdisc red 10: parent 1:10 limit 100000b min 15000b max 45000b ecn \n Sent 0 bytes 0 pkt (dropped 0, overlimits 0 requeues 0) \n backlog 0b 0p requeues 0\n  marked 0 early 0 pdrop 0 other 0",
+      "stderr": ""
+    },
+    "class": {
+      "command": "docker exec clab-evpnvxlan-leaf2 tc -s class show dev eth3",
+      "returncode": 0,
+      "stdout": "class htb 1:10 root leaf 10: prio 0 rate 5Mbit ceil 5Mbit burst 1600b cburst 1600b\n Sent 0 bytes 0 pkt (dropped 0, overlimits 0 requeues 0) \n backlog 0b 0p requeues 0\n lended: 0 borrowed: 0 giants: 0\n tokens: 40000 ctokens: 40000\n\nclass red 10:1 parent 10:",
+      "stderr": ""
+    }
+  },
+  "traffic": {
+    "sender": {
+      "role": "sender",
+      "source": "192.168.10.11",
+      "destination": "192.168.10.12",
+      "destination_port": 4791,
+      "payload_bytes": 1400,
+      "dscp": 26,
+      "ecn": 2,
+      "tos": 106,
+      "sent_packets": 8000,
+      "elapsed_seconds": 8.0,
+      "offered_payload_mbps": 11.199
+    },
+    "receiver": {
+      "role": "receiver",
+      "destination": "192.168.10.12",
+      "destination_port": 4791,
+      "received_packets": 3538,
+      "received_payload_bytes": 4953200,
+      "elapsed_seconds": 10.216,
+      "received_payload_mbps": 3.879,
+      "dscp_counts": {
+        "26": 3538
+      },
+      "ecn_counts": {
+        "not_ect": 0,
+        "ect_1": 0,
+        "ect_0": 70,
+        "ce": 3468
+      }
+    }
+  },
+  "after_traffic": {
+    "qdisc": {
+      "command": "docker exec clab-evpnvxlan-leaf2 tc -s qdisc show dev eth3",
+      "returncode": 0,
+      "stdout": "qdisc htb 1: root refcnt 13 r2q 10 default 0x10 direct_packets_stat 0 direct_qlen 1000\n Sent 5101796 bytes 3538 pkt (dropped 4465, overlimits 3537 requeues 0) \n backlog 0b 0p requeues 0\nqdisc red 10: parent 1:10 limit 100000b min 15000b max 45000b ecn \n Sent 5101796 bytes 3538 pkt (dropped 4465, overlimits 7933 requeues 0) \n backlog 0b 0p requeues 0\n  marked 7930 early 3 pdrop 4462 other 0",
+      "stderr": ""
+    },
+    "class": {
+      "command": "docker exec clab-evpnvxlan-leaf2 tc -s class show dev eth3",
+      "returncode": 0,
+      "stdout": "class htb 1:10 root leaf 10: prio 0 rate 5Mbit ceil 5Mbit burst 1600b cburst 1600b\n Sent 5101796 bytes 3538 pkt (dropped 4465, overlimits 3537 requeues 0) \n backlog 0b 0p requeues 0\n lended: 3538 borrowed: 0 giants: 0\n tokens: -31714 ctokens: -31714\n\nclass red 10:1 parent 10:",
+      "stderr": ""
+    }
+  },
+  "after_cleanup": {
+    "command": "docker exec clab-evpnvxlan-leaf2 tc -s qdisc show dev eth3",
+    "returncode": 0,
+    "stdout": "qdisc noqueue 0: root refcnt 2 \n Sent 0 bytes 0 pkt (dropped 0, overlimits 0 requeues 0) \n backlog 0b 0p requeues 0",
+    "stderr": ""
+  },
+  "validation": {
+    "checks": {
+      "traffic_generated": true,
+      "traffic_received": true,
+      "dscp_26_observed": true,
+      "all_received_packets_preserved_dscp_26": true,
+      "ecn_capable_packets_observed": true,
+      "ce_observed": true,
+      "red_marking_observed": true,
+      "congestion_overlimits_observed": true,
+      "cleanup_restored_noqueue": true
+    },
+    "measurements": {
+      "red_marked": 7930,
+      "max_overlimits": 7933,
+      "received_packets": 3538,
+      "ect0_received": 70,
+      "ce_received": 3468
+    },
+    "overall": "PASS",
+    "ce_fraction_of_received": 0.9802
+  }
+}
