@@ -183,25 +183,132 @@ These timings are observations from a **WSL2/Containerlab/FRR software environme
 
 This analysis is **deterministic and rule-based**. It is not an AI/ML or LLM-based RCA engine and does not claim that temporal correlation independently proves causality.
 
+## Phase 7 — AI Fabric QoS, Congestion & ECN Validation (RoCEv2-Oriented)
+
+Phase 7 extends the EVPN/VXLAN fabric with automated QoS, controlled congestion, and ECN validation using software-emulated traffic and Linux traffic control.
+
+The goal is to validate networking behaviors relevant to AI/HPC Ethernet fabrics without claiming hardware RDMA or production RoCE capabilities that are not available in the current lab.
+
+### Traffic profile
+
+The experiment uses synthetic RoCEv2-oriented UDP traffic between the existing EVPN/VXLAN endpoints:
+
+```text
+host1 (192.168.10.11)
+        |
+        | UDP/4791
+        | DSCP 26 + ECT(0)
+        v
+      leaf1
+        |
+   EVPN/VXLAN fabric
+        |
+      leaf2
+        |
+   HTB + RED/ECN
+        |
+        v
+host2 (192.168.10.12)
+
+```
+The lab policy uses:
+- UDP destination port 4791.
+- DSCP 26.
+- ECN ECT(0) at the sender.
+- 1400-byte UDP payload.
+- 1000 packets per second for 8 seconds.
+- Approximately 11.2 Mbps offered payload traffic.
+- A controlled 5 Mbps bottleneck on leaf2 eth3.
+DSCP 26 is an explicit lab policy for this experiment and is not presented as a universal RoCEv2 DSCP assignment.
+
+### Congestion and ECN experiment
+
+Linux traffic control is used on leaf2 eth3 to create a reproducible software bottleneck.
+An HTB class limits the egress path to 5 Mbit/s. A RED qdisc with ECN enabled is attached below the HTB class.
+The automated experiment performs the following sequence:
+1. Capture the original qdisc state.
+2. Install the 5 Mbps HTB bottleneck.
+3. Install RED with ECN enabled.
+4. Start an ECN-aware UDP receiver on host2.
+5. Generate DSCP 26 / ECT(0) traffic from host1.
+6. Collect destination DSCP/ECN observations.
+7. Collect qdisc congestion and marking counters.
+8. Validate the experiment automatically.
+9. Remove the temporary qdisc configuration.
+10. Verify restoration of the original noqueue state.
+11. Store structured JSON evidence.
+
+### Validated behavior
+
+The automated Phase 7 validation confirms:
+- Synthetic UDP/4791 forwarding across the EVPN/VXLAN overlay.
+- End-to-end preservation of DSCP 26.
+- End-to-end preservation of ECN-capable ECT(0) traffic before congestion marking.
+- Controlled congestion using a 5 Mbps HTB bottleneck.
+- Linux RED congestion-management behavior with ECN enabled.
+- Observation of CE-marked packets at the destination.
+- RED marking activity and congestion overlimit telemetry.
+- Automatic cleanup and restoration of the original qdisc state.
+The representative evidence artifact is:
+results/phase7/qos_ecn_setup_20261016_174048.json
+That run recorded:
+- Received packets: 3538
+- ECT(0) packets received: 70
+- CE packets received: 3468
+- CE fraction among received packets: 98.02%
+- RED marked counter: 7930
+- Maximum observed overlimits counter: 7933
+- Overall automated validation: PASS
+The destination CE count and RED marking counter are observations from different points in the experiment and are not expected to be numerically identical.
+
+### Automation
+
+traffic/qos_traffic.py provides the reusable UDP sender/receiver and supports explicit DSCP and ECN values.
+traffic/run_qos_ecn_experiment.py orchestrates traffic generation, congestion setup, telemetry collection, validation, cleanup, and JSON evidence generation.
+tests/test_ai_fabric_qos.py adds five integration tests covering:
+- overall experiment validation,
+- DSCP preservation,
+- ECN/CE observation,
+- congestion telemetry,
+- and qdisc cleanup.
+All 5 Phase 7 integration tests passed.
+
+### Scope and limitations
+
+This phase validates real Linux IP QoS and ECN behavior inside a software-emulated EVPN/VXLAN fabric, but the generated workload is synthetic RoCEv2-oriented UDP traffic, not real RDMA/RoCE NIC traffic.
+The experiment does not claim validation of:
+- RDMA verbs, Queue Pairs, Memory Regions, or Completion Queues.
+- Hardware Priority Flow Control (PFC / IEEE 802.1Qbb).
+- DCQCN hardware congestion control.
+- RDMA NIC or switch ASIC counters.
+- Real RoCEv2 throughput or latency.
+- GPU collective communication performance.
+- Production lossless-Ethernet behavior.
+The congestion experiment intentionally creates severe oversubscription and observes both ECN marking and packet drops. It therefore must not be interpreted as demonstrating a lossless fabric.
+
 
 ## Current test status
 
-The latest verified full regression run on 2026-10-15 passed **39 tests in 58.21 seconds**. The regression includes routing, EVPN/VXLAN, failure-injection, evidence-correlation, RCA, recovery, and jumbo-MTU validation. Run `./run_tests.sh` after changes to verify the current status.
+The latest verified full regression run on 2026-10-16 passed **44 tests in 70.09 seconds**.
+
+The regression includes basic connectivity, BGP convergence and failover, OSPF reconvergence, EVPN/VXLAN control-plane and forwarding validation, jumbo MTU, failure injection, evidence correlation, deterministic RCA, and Phase 7 QoS/congestion/ECN validation.
+
+Run `./run_tests.sh` after changes to verify the current status.
 
 ## Future work
 
-### Phase 7 — RoCEv2 and lossless-Ethernet validation
+Future hardware-backed validation can extend the project toward:
 
-Planned work will validate only capabilities that can be meaningfully demonstrated in the current software lab, including:
+- Real RoCEv2 traffic using RDMA-capable NICs.
+- RDMA verbs, Queue Pairs, Memory Regions, and Completion Queues.
+- Priority Flow Control (PFC / IEEE 802.1Qbb).
+- DCQCN congestion control.
+- NIC and switch hardware congestion counters.
+- GPU collective traffic and AI workload behavior.
+- Hardware-backed throughput, latency, congestion, and failure validation.
 
-- QoS/DSCP classification and traffic handling.
-- Jumbo-MTU behavior relevant to RoCEv2 fabrics.
-- ECMP and path-failure behavior for representative RoCEv2-style traffic.
-- Congestion generation and Linux queue/interface evidence.
-- ECN behavior where supported by the Linux networking stack.
-- Telemetry collection and automated failure/congestion correlation.
+These capabilities will only be reported as validated when suitable hardware or an environment that genuinely exposes those behaviors is available.
 
-Hardware-dependent behavior such as real RDMA verbs, Queue Pairs, Completion Queues, PFC hardware queues, DCQCN, RDMA NIC counters, and actual RoCE throughput will be documented as production validation scenarios rather than claimed as executed in this software-only environment.
 ## Reproducibility notes
 
 - Record the topology, environment, trial count, and measurement method with each benchmark.
